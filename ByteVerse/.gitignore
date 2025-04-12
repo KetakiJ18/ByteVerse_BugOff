@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+distilgpt2/
+*.egg-info/
+*.log
+venv/
+.idea/
+.DS_Store
+docker-image.tar
+*.sqlite3
