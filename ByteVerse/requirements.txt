@@ -4,3 +4,7 @@ faiss-cpu
 pymupdf
 numpy
 tqdm
+accelerate
+fastapi
+streamlit
+requests
