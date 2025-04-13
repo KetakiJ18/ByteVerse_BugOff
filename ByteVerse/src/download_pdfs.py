@@ -1,45 +1,48 @@
 import os
 import requests
 import pandas as pd
+from urllib.parse import urlparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-def download_pdf(url, download_folder):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  
-        filename = os.path.join(download_folder, url.split("/")[-1])  
-        with open(filename, 'wb') as file:
-            file.write(response.content)
-        print(f"Downloaded: {filename}")
-    except requests.exceptions.RequestException as e:
-        print(f"Error downloading {url}: {e}")
+CSV_FILE = r'C:\Users\ketak\OneDrive\Desktop\ByteVerse\data\judgments.csv'
+PDF_DIR = r'C:\Users\ketak\OneDrive\Desktop\ByteVerse\data\cases'
+BASE_URL = 'https://api.sci.gov.in/'
 
-def download_pdfs_from_dataset(csv_file, download_folder, pdf_column='pdf_link'):
+# Max number of parallel threads
+MAX_THREADS = 10
+
+def download_pdf(file_url, save_dir):
+    if not urlparse(file_url).scheme:
+        file_url = BASE_URL + file_url.lstrip('/')
+
+    file_name = os.path.basename(file_url)
+    save_path = os.path.join(save_dir, file_name)
+
     try:
-        df = pd.read_csv(csv_file)
-        print(f"Loaded dataset: {csv_file}")
-        
-        if pdf_column not in df.columns:
-            print(f"Error: Column '{pdf_column}' not found in the dataset.")
-            return
-        
-        if not os.path.exists(download_folder):
-            os.makedirs(download_folder)
-        
-        for index, row in df.iterrows():
-            pdf_url = row[pdf_column]
-            if isinstance(pdf_url, str) and pdf_url.endswith('.pdf'):
-                download_pdf(pdf_url, download_folder)
-            else:
-                print(f"Skipping row {index} as the URL is not a valid PDF: {pdf_url}")
-                
+        response = requests.get(file_url, stream=True, timeout=15)
+        response.raise_for_status()
+        with open(save_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                f.write(chunk)
+        print(f"Downloaded: {file_name}")
     except Exception as e:
-        print(f"Error processing the dataset: {e}")
+        print(f"❌ Failed to download {file_name}: {e}")
 
-def main():
-    csv_file = input("Enter the path to your Kaggle dataset (CSV): ")
-    download_folder = input("Enter the folder where PDFs should be saved: ")
-    
-    download_pdfs_from_dataset(csv_file, download_folder)
+def download_all(csv_file, save_dir):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
-if __name__ == '__main__':
-    main()
+    df = pd.read_csv(csv_file)
+    if 'temp_link' not in df.columns:
+        print("CSV missing 'temp_link' column.")
+        return
+
+    urls = df['temp_link'].dropna().tolist()
+
+    with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+        futures = [executor.submit(download_pdf, url, save_dir) for url in urls]
+        for _ in as_completed(futures):
+            pass  # Just waiting for all to complete
+
+# Start download
+download_all(CSV_FILE, PDF_DIR)
