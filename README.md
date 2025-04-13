@@ -19,7 +19,7 @@ Project Overview
 ### 4. **Legal Dictionary**:
 - Upload your document and hover over any word to decipher its meaning.
 
-### 4. **Fast API Backend & Streamlit Frontend**:
+### 5. **Fast API Backend & Streamlit Frontend**:
 - **FastAPI** is used for the backend to handle API requests for predictions and querying.
 - **Streamlit** is used for the frontend to provide an interactive web interface for users.
 
